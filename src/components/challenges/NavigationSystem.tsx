@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useGame } from '../../contexts/GameContext';
+import { usePenalty } from '../../hooks/usePenalty';
+import PenaltyOverlay from '../common/PenaltyOverlay';
 import { Compass, Thermometer, Cloud, Wind } from 'lucide-react';
 
 // Define route options
@@ -11,6 +13,7 @@ const routes = [
 
 // Define code blocks for the navigation logic
 const initialCodeBlocks = [
+  // Bloques correctos
   { id: 'block1', type: 'if', content: 'if (temperatura < -20 && clima === "clear") {', isPlaced: false },
   { id: 'block2', type: 'action', content: '  elegirRuta("A");  // Ruta Polar', isPlaced: false },
   { id: 'block3', type: 'else-if', content: '} else if (viento > 20) {', isPlaced: false },
@@ -18,9 +21,15 @@ const initialCodeBlocks = [
   { id: 'block5', type: 'else', content: '} else {', isPlaced: false },
   { id: 'block6', type: 'action', content: '  elegirRuta("B");  // Ruta Ecuatorial', isPlaced: false },
   { id: 'block7', type: 'closure', content: '}', isPlaced: false },
-  { id: 'block8', type: 'if', content: 'if (temperatura > 30) {', isPlaced: false },
-  { id: 'block9', type: 'action', content: '  activarRefrigeracion();', isPlaced: false },
-  { id: 'block10', type: 'closure', content: '}', isPlaced: false },
+  
+  // Bloques incorrectos adicionales
+  { id: 'wrong1', type: 'if', content: 'if (temperatura > 30 && viento < 10) {', isPlaced: false },
+  { id: 'wrong2', type: 'action', content: '  activarEscudosTermicos();', isPlaced: false },
+  { id: 'wrong3', type: 'action', content: '  calcularTrayectoria();', isPlaced: false },
+  { id: 'wrong4', type: 'condition', content: 'switch (clima) {', isPlaced: false },
+  { id: 'wrong5', type: 'condition', content: '  case "tormenta":', isPlaced: false },
+  { id: 'wrong6', type: 'action', content: '  iniciarModoEmergencia();', isPlaced: false },
+  { id: 'wrong7', type: 'closure', content: 'break;', isPlaced: false }
 ];
 
 // Correct order of blocks for the solution
@@ -28,6 +37,7 @@ const correctOrder = ['block1', 'block2', 'block3', 'block4', 'block5', 'block6'
 
 const NavigationSystem: React.FC = () => {
   const { completeChallenge } = useGame();
+  const { penalize, showPenalty } = usePenalty();
   const [codeBlocks, setCodeBlocks] = useState(() => {
     // Mezclar aleatoriamente los bloques al inicio
     return [...initialCodeBlocks].sort(() => Math.random() - 0.5);
@@ -99,16 +109,19 @@ const NavigationSystem: React.FC = () => {
   const checkSolution = () => {
     const isSequenceCorrect = JSON.stringify(placedBlocks) === JSON.stringify(correctOrder);
     
-    if (isSequenceCorrect) {
-      setFeedback('Ejecutando sistema de navegación...');
-      simulateNavigation();
-    } else {
-      setFeedback('La lógica de navegación no es correcta. Revisa las condiciones.');
+    if (!isSequenceCorrect) {
+      const penalty = penalize();
+      setFeedback(`La lógica de navegación no es correcta. Has perdido ${penalty} segundos de oxígeno. Revisa las condiciones y el orden de los bloques.`);
+      return;
     }
+
+    setFeedback('Ejecutando sistema de navegación...');
+    simulateNavigation();
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col relative">
+      <PenaltyOverlay show={showPenalty} />
       {/* Navigation visualization */}
       <div className="flex justify-center mb-6">
         <div className="relative w-[500px] h-[300px] bg-slate-900 rounded-lg overflow-hidden">

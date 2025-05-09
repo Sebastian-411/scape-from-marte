@@ -9,6 +9,7 @@ import StartScreen from './components/game/StartScreen';
 import Notification from './components/game/Notification';
 import TaskList from './components/game/TaskList';
 import MissionCompleteScreen from './components/game/MissionCompleteScreen';
+import GameOverScreen from './components/game/GameOverScreen';
 
 // Game component that uses the context
 const Game: React.FC = () => {
@@ -16,6 +17,10 @@ const Game: React.FC = () => {
 
   if (state.gameCompleted) {
     return <MissionCompleteScreen />;
+  }
+
+  if (state.gameFailed) {
+    return <GameOverScreen />;
   }
 
   return (

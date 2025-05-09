@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useGame } from '../../contexts/GameContext';
+import { usePenalty } from '../../hooks/usePenalty';
+import PenaltyOverlay from '../common/PenaltyOverlay';
 import { Zap } from 'lucide-react';
 
 // Code blocks for loop challenge
@@ -20,7 +22,11 @@ const correctOrder = ['block2', 'block3', 'block4'];
 
 const SolarPanels: React.FC = () => {
   const { completeChallenge } = useGame();
-  const [codeBlocks, setCodeBlocks] = useState(initialCodeBlocks);
+  const { penalize, showPenalty } = usePenalty();
+  const [codeBlocks, setCodeBlocks] = useState(() => {
+    // Mezclar aleatoriamente los bloques al inicio
+    return [...initialCodeBlocks].sort(() => Math.random() - 0.5);
+  });
   const [placedBlocks, setPlacedBlocks] = useState<string[]>([]);
   const [feedback, setFeedback] = useState('');
   const [isCorrect, setIsCorrect] = useState(false);
@@ -99,7 +105,8 @@ const SolarPanels: React.FC = () => {
   const checkSolution = () => {
     // Verificar que todos los bloques necesarios estén colocados
     if (placedBlocks.length !== correctOrder.length) {
-      setFeedback(`Necesitas colocar todos los bloques necesarios. Faltan ${correctOrder.length - placedBlocks.length} bloques.`);
+      const penalty = penalize();
+      setFeedback(`Necesitas colocar todos los bloques necesarios. Has perdido ${penalty} segundos de oxígeno. Faltan ${correctOrder.length - placedBlocks.length} bloques.`);
       return;
     }
 
@@ -107,13 +114,15 @@ const SolarPanels: React.FC = () => {
     const isSequenceCorrect = placedBlocks.every((blockId, index) => blockId === correctOrder[index]);
     
     if (!isSequenceCorrect) {
-      setFeedback('El orden de los bloques no es correcto. Asegúrate de que el bucle esté bien estructurado.');
+      const penalty = penalize();
+      setFeedback(`El orden de los bloques no es correcto. Has perdido ${penalty} segundos de oxígeno. Asegúrate de que el bucle esté bien estructurado.`);
       return;
     }
 
     // Verificar que se vayan a limpiar todos los paneles
     if (iterations < TOTAL_PANELS) {
-      setFeedback('¡El número de iteraciones no es suficiente para limpiar todos los paneles solares!');
+      const penalty = penalize();
+      setFeedback(`Has perdido ${penalty} segundos de oxígeno. ¡El número de iteraciones no es suficiente para limpiar todos los paneles solares!`);
       return;
     }
 
@@ -148,7 +157,8 @@ const SolarPanels: React.FC = () => {
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col relative">
+      <PenaltyOverlay show={showPenalty} />
       {/* Solar panels visualization */}
       <div className="flex justify-center mb-6">
         <div className="grid grid-cols-5 gap-4">

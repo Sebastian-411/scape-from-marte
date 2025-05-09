@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useGame } from '../../contexts/GameContext';
+import { usePenalty } from '../../hooks/usePenalty';
+import PenaltyOverlay from '../common/PenaltyOverlay';
 
 // Tipos de filtros y sus propiedades
 interface Filter {
@@ -13,58 +15,37 @@ interface Filter {
 
 // Bloques de código disponibles
 const initialBlocks = [
-  { 
-    id: 'init', 
-    label: 'inicializarSistema();', 
-    type: 'system',
-    isPlaced: false 
-  },
-  { 
-    id: 'check', 
-    label: 'verificarPresion();', 
-    type: 'check',
-    isPlaced: false 
-  },
-  { 
-    id: 'filter1', 
-    label: 'activarFiltro(1, { temperatura: 25, presion: 2.5 });', 
-    type: 'filter',
-    filterId: 1,
-    isPlaced: false 
-  },
-  { 
-    id: 'filter2', 
-    label: 'activarFiltro(2, { temperatura: 30, presion: 3.0 });', 
-    type: 'filter',
-    filterId: 2,
-    isPlaced: false 
-  },
-  { 
-    id: 'filter3', 
-    label: 'activarFiltro(3, { temperatura: 35, presion: 3.5 });', 
-    type: 'filter',
-    filterId: 3,
-    isPlaced: false 
-  },
-  { 
-    id: 'monitor', 
-    label: 'monitorearNiveles();', 
-    type: 'monitor',
-    isPlaced: false 
-  },
-  { 
-    id: 'optimize', 
-    label: 'optimizarRendimiento();', 
-    type: 'optimize',
-    isPlaced: false 
-  }
+  { id: 'init', label: 'inicializarSistema();', type: 'system', isPlaced: false },
+  { id: 'check', label: 'verificarPresion();', type: 'check', isPlaced: false },
+  { id: 'filter1', label: 'activarFiltro(1, { temperatura: 25, presion: 2.5 });', type: 'filter', filterId: 1, isPlaced: false },
+  { id: 'filter2', label: 'activarFiltro(2, { temperatura: 30, presion: 3.0 });', type: 'filter', filterId: 2, isPlaced: false },
+  { id: 'filter3', label: 'activarFiltro(3, { temperatura: 35, presion: 3.5 });', type: 'filter', filterId: 3, isPlaced: false },
+  { id: 'monitor', label: 'monitorearNiveles();', type: 'monitor', isPlaced: false },
+  { id: 'optimize', label: 'optimizarRendimiento();', type: 'optimize', isPlaced: false },
+  
+  { id: 'wrong1', label: 'desactivarFiltros();', type: 'action', isPlaced: false },
+  { id: 'wrong2', label: 'purgarSistema();', type: 'action', isPlaced: false },
+  { id: 'wrong3', label: 'if (oxigeno < 50%) {', type: 'condition', isPlaced: false },
+  { id: 'wrong4', label: '} else {', type: 'condition', isPlaced: false },
+  { id: 'wrong5', label: '}', type: 'closure', isPlaced: false },
+  { id: 'wrong6', label: 'while (presion > MAX_PRESION) {', type: 'loop', isPlaced: false },
+  { id: 'wrong7', label: 'for (let i = 0; i < filtros.length; i++) {', type: 'loop', isPlaced: false },
+  { id: 'wrong8', label: 'apagarEmergencia();', type: 'action', isPlaced: false },
+  { id: 'wrong9', label: 'recalibrarSensores();', type: 'action', isPlaced: false },
+  { id: 'wrong10', label: 'try {', type: 'control', isPlaced: false },
+  { id: 'wrong11', label: '} catch (error) {', type: 'control', isPlaced: false },
+  { id: 'wrong12', label: 'throw new Error("Fallo en sistema");', type: 'control', isPlaced: false }
 ];
 
 const correctOrder = ['init', 'check', 'filter1', 'filter2', 'filter3', 'monitor', 'optimize'];
 
 const OxygenSystemChallenge: React.FC = () => {
   const { completeChallenge } = useGame();
-  const [blocks, setBlocks] = useState(initialBlocks);
+  const { penalize, showPenalty } = usePenalty();
+  const [blocks, setBlocks] = useState(() => {
+    // Mezclar aleatoriamente los bloques al inicio
+    return [...initialBlocks].sort(() => Math.random() - 0.5);
+  });
   const [placedBlocks, setPlacedBlocks] = useState<string[]>([]);
   const [feedback, setFeedback] = useState('');
   const [isCorrect, setIsCorrect] = useState(false);
@@ -165,22 +146,30 @@ const OxygenSystemChallenge: React.FC = () => {
         step++;
       } else {
         clearInterval(interval);
-        if (JSON.stringify(placedBlocks) === JSON.stringify(correctOrder)) {
-          setFeedback('¡Sistema de oxígeno optimizado y funcionando al 100%!');
-          setIsCorrect(true);
-          setTimeout(() => completeChallenge('oxygen-system'), 2000);
-        } else {
-          setFeedback('Error en la secuencia. El sistema no está optimizado.');
-          setSystemStatus('off');
-          setFilters(prev => prev.map(f => ({ ...f, status: 'off', efficiency: 0 })));
-          setOxygenLevel(0);
-        }
+        checkSolution();
       }
     }, 1500);
   };
 
+  const checkSolution = () => {
+    const isSequenceCorrect = JSON.stringify(placedBlocks) === JSON.stringify(correctOrder);
+    
+    if (!isSequenceCorrect) {
+      const penalty = penalize();
+      setFeedback(`La secuencia no es correcta. Has perdido ${penalty} segundos de oxígeno. Revisa el orden de activación.`);
+      return;
+    }
+
+    setFeedback('¡Excelente! Has optimizado el sistema de oxígeno correctamente.');
+    setIsCorrect(true);
+    setTimeout(() => {
+      completeChallenge('oxygen-system');
+    }, 2000);
+  };
+
   return (
-    <div className="h-full flex flex-col items-center justify-center p-6">
+    <div className="h-full flex flex-col items-center justify-center p-6 relative">
+      <PenaltyOverlay show={showPenalty} />
       <h2 className="text-2xl font-bold text-blue-400 mb-2">Sistema de Oxígeno</h2>
       <p className="text-gray-300 mb-6 text-center max-w-md">
         Programa la secuencia de activación del sistema de oxígeno. Debes inicializar el sistema, verificar la presión, activar los filtros en orden, monitorear los niveles y optimizar el rendimiento.

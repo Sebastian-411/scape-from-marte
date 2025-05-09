@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useGame } from '../../contexts/GameContext';
+import { usePenalty } from '../../hooks/usePenalty';
+import PenaltyOverlay from '../common/PenaltyOverlay';
 import { Droplets } from 'lucide-react';
 
 // Define particles for the fuel system
@@ -48,6 +50,7 @@ const correctOrder = ['block1', 'block2', 'block3', 'block4', 'block5', 'block6'
 
 const FuelPurifier: React.FC = () => {
   const { completeChallenge } = useGame();
+  const { penalize, showPenalty } = usePenalty();
   const [codeBlocks, setCodeBlocks] = useState(initialCodeBlocks);
   const [placedBlocks, setPlacedBlocks] = useState<string[]>([]);
   const [particles, setParticles] = useState(initialParticles);
@@ -168,20 +171,23 @@ const FuelPurifier: React.FC = () => {
       // Verificar si están todos los bloques necesarios
       const hasAllRequiredBlocks = correctOrder.every(blockId => placedBlocks.includes(blockId));
       if (!hasAllRequiredBlocks) {
-        setFeedback('Faltan algunos bloques necesarios. Asegúrate de incluir todos los bloques de la función.');
+        const penalty = penalize();
+        setFeedback(`Faltan algunos bloques necesarios. Has perdido ${penalty} segundos. Asegúrate de incluir todos los bloques de la función.`);
         return;
       }
 
       // Verificar el orden específico de los bloques
       const wrongOrderIndex = placedBlocks.findIndex((blockId, index) => blockId !== correctOrder[index]);
       if (wrongOrderIndex >= 0) {
-        setFeedback(`El orden de los bloques no es correcto. Revisa la estructura de la función.`);
+        const penalty = penalize();
+        setFeedback(`El orden de los bloques no es correcto. Has perdido ${penalty} segundos. Revisa la estructura de la función.`);
         return;
       }
     }
 
     if (!isParticleTypeCorrect) {
-      setFeedback('¡Cuidado! Debes filtrar el combustible, no los contaminantes.');
+      const penalty = penalize();
+      setFeedback(`¡Cuidado! Has perdido ${penalty} segundos. Debes filtrar el combustible, no los contaminantes.`);
       return;
     }
     
@@ -190,7 +196,8 @@ const FuelPurifier: React.FC = () => {
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col relative">
+      <PenaltyOverlay show={showPenalty} />
       {/* Fuel tank visualization */}
       <div className="flex justify-center mb-6">
         <div className="flex space-x-10 items-center">

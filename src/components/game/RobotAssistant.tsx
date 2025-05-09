@@ -72,6 +72,8 @@ const RobotAssistant: React.FC = () => {
               role: 'system',
               content: `Eres un asistente robótico en una misión espacial en Marte. Tu objetivo es ayudar al astronauta a completar las siguientes tareas:
 
+IMPORTANTE: Responde siempre en texto plano, sin usar formato markdown ni otros formatos especiales.
+
 1. Reparación de Ventanas:
 ${CHALLENGE_HELP_MESSAGES['window-repair'].map(msg => '- ' + msg).join('\n')}
 
@@ -97,6 +99,8 @@ ${CHALLENGE_HELP_MESSAGES['life-support'].map(msg => '- ' + msg).join('\n')}
 ${CHALLENGE_HELP_MESSAGES['communications'].map(msg => '- ' + msg).join('\n')}
 
 Debes ser conciso, útil y mantener un tono amigable pero profesional. Cuando el astronauta pregunte sobre un reto específico, proporciona instrucciones claras y paso a paso sobre cómo completarlo, usando los mensajes de ayuda proporcionados.
+
+Recuerda: Usa SOLO texto plano en tus respuestas, sin markdown ni otros formatos.
 
 El reto actual del astronauta es: ${state.currentChallenge || 'ninguno'}`
             },

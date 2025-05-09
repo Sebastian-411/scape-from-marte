@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useGame } from '../../contexts/GameContext';
+import { usePenalty } from '../../hooks/usePenalty';
+import PenaltyOverlay from '../common/PenaltyOverlay';
 import { Package, ArrowDown, ArrowUp } from 'lucide-react';
 
 // Define cargo items for sorting
@@ -13,6 +15,7 @@ const initialCargo = [
 
 const CargoSystem: React.FC = () => {
   const { completeChallenge } = useGame();
+  const { penalize, showPenalty } = usePenalty();
   const [cargo, setCargo] = useState([...initialCargo]);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [step, setStep] = useState(0);
@@ -20,6 +23,8 @@ const CargoSystem: React.FC = () => {
   const [swapping, setSwapping] = useState<[number, number] | null>(null);
   const [sortingComplete, setSortingComplete] = useState(false);
   const [message, setMessage] = useState('');
+  const [feedback, setFeedback] = useState('');
+  const [isCorrect, setIsCorrect] = useState(false);
   
   // Function to simulate bubble sort algorithm
   const runSortingAnimation = () => {
@@ -109,8 +114,31 @@ const CargoSystem: React.FC = () => {
     runSortingAnimation();
   };
 
+  const checkSolution = () => {
+    // Verificar que las cajas estén ordenadas
+    const isSorted = cargo.every((item, index) => {
+      if (index === 0) return true;
+      return sortOrder === 'asc' 
+        ? item.weight >= cargo[index - 1].weight
+        : item.weight <= cargo[index - 1].weight;
+    });
+
+    if (!isSorted) {
+      const penalty = penalize();
+      setFeedback(`Las cajas no están correctamente ordenadas. Has perdido ${penalty} segundos de oxígeno. Revisa el orden de las cajas.`);
+      return;
+    }
+
+    setFeedback('¡Excelente! Has organizado la carga correctamente.');
+    setIsCorrect(true);
+    setTimeout(() => {
+      completeChallenge('cargo-system');
+    }, 2000);
+  };
+
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col relative">
+      <PenaltyOverlay show={showPenalty} />
       {/* Cargo visualization */}
       <div className="flex flex-col items-center mb-6">
         <div className="p-4 bg-gray-100 rounded-lg shadow-md w-full max-w-md">

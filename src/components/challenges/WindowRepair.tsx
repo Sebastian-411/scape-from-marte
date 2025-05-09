@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useGame } from '../../contexts/GameContext';
 import { Shield } from 'lucide-react';
 
@@ -55,7 +55,7 @@ const getRandomMaterial = (materials: typeof availableMaterials) => {
 };
 
 const WindowRepair: React.FC = () => {
-  const { completeChallenge } = useGame();
+  const { completeChallenge, penalizeTime } = useGame();
   const [codeBlocks, setCodeBlocks] = useState(() => shuffleBlocks(initialCodeBlocks));
   const [placedBlocks, setPlacedBlocks] = useState<string[]>([]);
   const [shuffledMaterials] = useState(() => shuffleMaterials(availableMaterials));
@@ -64,7 +64,17 @@ const WindowRepair: React.FC = () => {
   const [feedback, setFeedback] = useState('');
   const [isCorrect, setIsCorrect] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [errorCount, setErrorCount] = useState(0);
+  const [showPenalty, setShowPenalty] = useState(false);
   const dropAreaRef = useRef<HTMLDivElement>(null);
+
+  // Efecto visual de penalización
+  useEffect(() => {
+    if (showPenalty) {
+      const timer = setTimeout(() => setShowPenalty(false), 800);
+      return () => clearTimeout(timer);
+    }
+  }, [showPenalty]);
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
     e.dataTransfer.setData('blockId', id);
@@ -118,52 +128,51 @@ const WindowRepair: React.FC = () => {
     });
   };
 
+  const penalize = () => {
+    const nextError = errorCount + 1;
+    setErrorCount(nextError);
+    // Penalización exponencial: 10 * 2^(errorCount)
+    // Para errorCount = 0, penalty = 10
+    // Para errorCount = 1, penalty = 20
+    // Para errorCount = 2, penalty = 40
+    // Para errorCount = 3, penalty = 80
+    // etc.
+    const penalty = 10 * Math.pow(2, errorCount);
+    penalizeTime(penalty);
+    setShowPenalty(true);
+    setFeedback(prev => `${prev} ¡Has perdido ${penalty} segundos!`);
+  };
+
   const checkSolution = () => {
     // Verificar que todos los bloques necesarios estén colocados
     if (placedBlocks.length !== correctOrder.length) {
       setFeedback(`Necesitas colocar todos los bloques necesarios. Recuerda que necesitas: verificar material → reparar → cerrar if → else → buscar material → cerrar else`);
+      penalize();
       return;
     }
 
     // Verificar el orden de los bloques
-    console.log('Placed blocks:', placedBlocks);
-    console.log('Correct order:', correctOrder);
-    
-    const isSequenceCorrect = placedBlocks.every((blockId, index) => {
-      const isCorrect = blockId === correctOrder[index];
-      if (!isCorrect) {
-        console.log(`Error en posición ${index}: esperado ${correctOrder[index]}, recibido ${blockId}`);
-      }
-      return isCorrect;
-    });
-    
+    const isSequenceCorrect = placedBlocks.every((blockId, index) => blockId === correctOrder[index]);
     // Verificar que el material seleccionado en el bloque if sea el correcto
     const ifBlockId = placedBlocks.find(id => id === 'block1');
-    console.log('Selected materials:', selectedMaterials);
-    console.log('If block ID:', ifBlockId);
-    
-    if (ifBlockId) {
-      console.log('Selected material for if block:', selectedMaterials[ifBlockId]);
-    }
-    
     const isMaterialCorrect = ifBlockId && selectedMaterials[ifBlockId] === 'vidrio';
-    
+
     if (!isMaterialCorrect) {
       setFeedback('El material correcto para reparar la ventana es el vidrio. Recuerda que el robot debe verificar el material antes de intentar reparar.');
+      penalize();
       return;
     }
 
     if (!isSequenceCorrect) {
       setFeedback('El orden de los bloques no es correcto. Recuerda que primero debes verificar el material, luego reparar, y si el material es incorrecto, buscar el material correcto.');
+      penalize();
       return;
     }
-    
+
     if (isSequenceCorrect && isMaterialCorrect) {
       setFeedback('¡Excelente! Has reparado la ventana correctamente. El robot verificó el material, lo reparó con vidrio, y está listo para buscar otro material si es necesario.');
       setIsCorrect(true);
       setShowSuccess(true);
-      
-      // Mark challenge as completed after animation
       setTimeout(() => {
         completeChallenge('window-repair');
       }, 2000);
@@ -195,7 +204,11 @@ const WindowRepair: React.FC = () => {
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col relative">
+      {/* Overlay de penalización */}
+      {showPenalty && (
+        <div className="absolute inset-0 z-50 bg-red-600 bg-opacity-60 animate-pulse pointer-events-none" style={{animationDuration: '0.8s'}} />
+      )}
       {/* Window visual */}
       <div className="flex justify-center mb-4">
         <div className={`w-48 h-48 border-8 border-gray-700 rounded-lg relative ${showSuccess ? 'bg-blue-200' : 'bg-red-200'} transition-colors duration-1000`}>

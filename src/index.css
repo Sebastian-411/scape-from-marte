@@ -259,3 +259,24 @@
 .animate-twinkle {
   animation: twinkle 2s ease-in-out infinite;
 }
+
+/* New animations for GameOverScreen */
+@keyframes escape {
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-100px) translateX(50px);
+    opacity: 0;
+  }
+}
+
+.animate-escape {
+  animation: escape 2s ease-out forwards;
+}
+
+/* Gradient for the vignette effect */
+.bg-gradient-radial {
+  background-image: radial-gradient(circle at center, var(--tw-gradient-from) 0%, var(--tw-gradient-to) 100%);
+}

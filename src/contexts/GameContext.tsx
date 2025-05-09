@@ -2,8 +2,8 @@ import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { GameState, Challenge, Direction } from '../types';
 import { INITIAL_CHALLENGES } from '../data/challenges';
 
-const GAME_TIME = 15 * 60; // 15 minutes in seconds
-const DEV_MODE = false; // Cambia a false para desactivar el modo desarrollador
+const GAME_TIME = 20 * 60; // 20 minutes in seconds
+const DEV_MODE = true; // Cambia a false para desactivar el modo desarrollador
 
 type NotificationType = 'success' | 'info';
 
@@ -23,7 +23,8 @@ type GameAction =
   | { type: 'HIDE_ASSISTANT' }
   | { type: 'GAME_OVER'; success: boolean }
   | { type: 'SHOW_NOTIFICATION'; message: string; notificationType: NotificationType }
-  | { type: 'CLEAR_NOTIFICATION' };
+  | { type: 'CLEAR_NOTIFICATION' }
+  | { type: 'PENALIZE_TIME'; seconds: number };
 
 const initialState: GameState = {
   playerPosition: { x: 250, y: 250 },
@@ -214,6 +215,17 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         ...state,
         notification: null
       };
+    case 'PENALIZE_TIME': {
+      const newTime = Math.max(0, state.timeRemaining - action.seconds);
+      return {
+        ...state,
+        timeRemaining: newTime,
+        notification: {
+          message: `¡Has perdido ${action.seconds} segundos por un error!`,
+          type: 'info'
+        }
+      };
+    }
     default:
       return state;
   }
@@ -230,6 +242,7 @@ type GameContextType = {
   showAssistant: (message: string) => void;
   hideAssistant: () => void;
   isTimeCritical: boolean;
+  penalizeTime: (seconds: number) => void;
 };
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -244,6 +257,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const exitChallenge = () => dispatch({ type: 'EXIT_CHALLENGE' });
   const showAssistant = (message: string) => dispatch({ type: 'SHOW_ASSISTANT', message });
   const hideAssistant = () => dispatch({ type: 'HIDE_ASSISTANT' });
+  const penalizeTime = (seconds: number) => dispatch({ type: 'PENALIZE_TIME', seconds });
 
   // Timer effect
   useEffect(() => {
@@ -275,7 +289,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         exitChallenge,
         showAssistant,
         hideAssistant,
-        isTimeCritical
+        isTimeCritical,
+        penalizeTime
       }}
     >
       {children}
