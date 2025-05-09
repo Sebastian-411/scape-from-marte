@@ -18,6 +18,9 @@ const initialCodeBlocks = [
   { id: 'block5', type: 'else', content: '} else {', isPlaced: false },
   { id: 'block6', type: 'action', content: '  elegirRuta("B");  // Ruta Ecuatorial', isPlaced: false },
   { id: 'block7', type: 'closure', content: '}', isPlaced: false },
+  { id: 'block8', type: 'if', content: 'if (temperatura > 30) {', isPlaced: false },
+  { id: 'block9', type: 'action', content: '  activarRefrigeracion();', isPlaced: false },
+  { id: 'block10', type: 'closure', content: '}', isPlaced: false },
 ];
 
 // Correct order of blocks for the solution
@@ -25,7 +28,10 @@ const correctOrder = ['block1', 'block2', 'block3', 'block4', 'block5', 'block6'
 
 const NavigationSystem: React.FC = () => {
   const { completeChallenge } = useGame();
-  const [codeBlocks, setCodeBlocks] = useState(initialCodeBlocks);
+  const [codeBlocks, setCodeBlocks] = useState(() => {
+    // Mezclar aleatoriamente los bloques al inicio
+    return [...initialCodeBlocks].sort(() => Math.random() - 0.5);
+  });
   const [placedBlocks, setPlacedBlocks] = useState<string[]>([]);
   const [selectedRoute, setSelectedRoute] = useState<string | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);

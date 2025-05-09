@@ -11,11 +11,14 @@ const Astronaut: React.FC = () => {
   // Check if player is near a challenge
   const checkChallengeProximity = () => {
     const challengeLocations = [
-      { id: 'window-repair', x: 100, y: 100 },
-      { id: 'solar-panels', x: 400, y: 100 },
-      { id: 'fuel-purifier', x: 100, y: 400 },
-      { id: 'cargo-system', x: 400, y: 400 },
-      { id: 'navigation', x: 250, y: 250 },
+      { id: 'window-repair', x: 436, y: 150 },
+      { id: 'solar-panels', x: 1050, y: 150 },
+      { id: 'fuel-purifier', x: 200, y: 600 },
+      { id: 'cargo-system', x: 1050, y: 600 },
+      { id: 'navigation', x: 625, y: 375 },
+      { id: 'oxygen-system', x: 625, y: 150 },
+      { id: 'communications', x: 300, y: 375 },
+      { id: 'life-support', x: 950, y: 375 }
     ];
 
     for (const location of challengeLocations) {
@@ -23,9 +26,9 @@ const Astronaut: React.FC = () => {
       const dy = Math.abs(playerPosition.y - location.y);
       const distance = Math.sqrt(dx * dx + dy * dy);
       
-      if (distance < 50) {
+      if (distance < 100) {
         const challenge = challenges.find(c => c.id === location.id);
-        if (challenge && !challenge.completed) {
+        if (challenge && !challenge.completed && challenge.isAvailable) {
           return location.id;
         }
       }

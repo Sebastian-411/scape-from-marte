@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useGame } from '../../contexts/GameContext';
+import { CHALLENGE_HELP_MESSAGES } from '../../data/challenges';
 
 const DEEPSEEK_API_KEY = 'sk-835c51cc2e964c73bbc8a7d01ef4ffbf';
 
@@ -41,9 +42,9 @@ const RobotAssistant: React.FC = () => {
 
   // Respond to challenge completion
   useEffect(() => {
-    if (state.notification) {
+    if (state.notification?.message) {
       const timer = setTimeout(() => {
-        setMessages(prev => [...prev, { text: state.notification.message, isUser: false }]);
+        setMessages(prev => [...prev, { text: state.notification!.message, isUser: false }]);
       }, 1000);
       return () => clearTimeout(timer);
     }
@@ -69,7 +70,35 @@ const RobotAssistant: React.FC = () => {
           messages: [
             {
               role: 'system',
-              content: 'Eres un asistente robótico en una misión espacial en Marte. Debes ser conciso, útil y mantener un tono amigable pero profesional. Tu objetivo es ayudar al astronauta a completar sus tareas y sobrevivir en Marte.'
+              content: `Eres un asistente robótico en una misión espacial en Marte. Tu objetivo es ayudar al astronauta a completar las siguientes tareas:
+
+1. Reparación de Ventanas:
+${CHALLENGE_HELP_MESSAGES['window-repair'].map(msg => '- ' + msg).join('\n')}
+
+2. Paneles Solares:
+${CHALLENGE_HELP_MESSAGES['solar-panels'].map(msg => '- ' + msg).join('\n')}
+
+3. Sistema de Combustible:
+${CHALLENGE_HELP_MESSAGES['fuel-purifier'].map(msg => '- ' + msg).join('\n')}
+
+4. Sistema de Carga:
+${CHALLENGE_HELP_MESSAGES['cargo-system'].map(msg => '- ' + msg).join('\n')}
+
+5. Navegación:
+${CHALLENGE_HELP_MESSAGES['navigation'].map(msg => '- ' + msg).join('\n')}
+
+6. Sistema de Oxígeno:
+${CHALLENGE_HELP_MESSAGES['oxygen-system'].map(msg => '- ' + msg).join('\n')}
+
+7. Soporte Vital:
+${CHALLENGE_HELP_MESSAGES['life-support'].map(msg => '- ' + msg).join('\n')}
+
+8. Comunicaciones:
+${CHALLENGE_HELP_MESSAGES['communications'].map(msg => '- ' + msg).join('\n')}
+
+Debes ser conciso, útil y mantener un tono amigable pero profesional. Cuando el astronauta pregunte sobre un reto específico, proporciona instrucciones claras y paso a paso sobre cómo completarlo, usando los mensajes de ayuda proporcionados.
+
+El reto actual del astronauta es: ${state.currentChallenge || 'ninguno'}`
             },
             {
               role: 'user',
@@ -150,7 +179,11 @@ const RobotAssistant: React.FC = () => {
             type="text"
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+            onKeyPress={(e) => {
+              e.stopPropagation();
+              if (e.key === 'Enter') handleSendMessage();
+            }}
+            onKeyDown={(e) => e.stopPropagation()}
             placeholder="Escribe tu mensaje..."
             className="flex-1 bg-gray-800 text-white rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />

@@ -4,20 +4,62 @@ import { Shield } from 'lucide-react';
 
 // Define the code blocks available for this challenge
 const initialCodeBlocks = [
-  { id: 'block1', type: 'if', content: 'if (sensor.detectaMaterial() === "vidrio") {', isPlaced: false },
+  { id: 'block1', type: 'if', content: 'if (sensor.detectaMaterial() === "', isPlaced: false },
   { id: 'block2', type: 'action', content: '  robot.repararVentana();', isPlaced: false },
-  { id: 'block3', type: 'else', content: '} else {', isPlaced: false },
-  { id: 'block4', type: 'action', content: '  robot.buscarMaterialCorrecto();', isPlaced: false },
-  { id: 'block5', type: 'action', content: '}', isPlaced: false },
+  { id: 'block3', type: 'closeIf', content: '} // Cierra el if', isPlaced: false },
+  { id: 'block4', type: 'else', content: 'else {', isPlaced: false },
+  { id: 'block5', type: 'action', content: '  robot.buscarMaterialCorrecto();', isPlaced: false },
+  { id: 'block6', type: 'closeElse', content: '} // Cierra el else', isPlaced: false },
+  { id: 'block7', type: 'action', content: '  robot.verificarPresion();', isPlaced: false },
+  { id: 'block8', type: 'action', content: '  robot.activarSellador();', isPlaced: false },
+  { id: 'block9', type: 'action', content: '  robot.verificarIntegridad();', isPlaced: false },
+  { id: 'block10', type: 'action', content: '  robot.reportarEstado();', isPlaced: false },
 ];
 
 // The correct order of blocks
-const correctOrder = ['block1', 'block2', 'block3', 'block4', 'block5'];
+const correctOrder = ['block1', 'block2', 'block3', 'block4', 'block5', 'block6'];
+
+// Materiales disponibles
+const availableMaterials = [
+  { id: 'vidrio', name: 'Vidrio', correct: true },
+  { id: 'metal', name: 'Metal', correct: false },
+  { id: 'plastico', name: 'Plástico', correct: false },
+  { id: 'ceramica', name: 'Cerámica', correct: false },
+  { id: 'madera', name: 'Madera', correct: false },
+];
+
+// Función para desordenar los bloques
+const shuffleBlocks = (blocks: typeof initialCodeBlocks) => {
+  const shuffled = [...blocks];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
+// Función para desordenar los materiales
+const shuffleMaterials = (materials: typeof availableMaterials) => {
+  const shuffled = [...materials];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
+// Función para obtener un material aleatorio
+const getRandomMaterial = (materials: typeof availableMaterials) => {
+  const randomIndex = Math.floor(Math.random() * materials.length);
+  return materials[randomIndex].id;
+};
 
 const WindowRepair: React.FC = () => {
   const { completeChallenge } = useGame();
-  const [codeBlocks, setCodeBlocks] = useState(initialCodeBlocks);
+  const [codeBlocks, setCodeBlocks] = useState(() => shuffleBlocks(initialCodeBlocks));
   const [placedBlocks, setPlacedBlocks] = useState<string[]>([]);
+  const [shuffledMaterials] = useState(() => shuffleMaterials(availableMaterials));
+  const [selectedMaterials, setSelectedMaterials] = useState<Record<string, string>>({});
   const [isDragging, setIsDragging] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [isCorrect, setIsCorrect] = useState(false);
@@ -64,11 +106,60 @@ const WindowRepair: React.FC = () => {
     setPlacedBlocks(placedBlocks.filter(blockId => blockId !== id));
   };
 
+  const handleMaterialChange = (blockId: string, materialId: string) => {
+    console.log('Changing material for block', blockId, 'to', materialId);
+    setSelectedMaterials(prev => {
+      const newMaterials = {
+        ...prev,
+        [blockId]: materialId
+      };
+      console.log('New materials state:', newMaterials);
+      return newMaterials;
+    });
+  };
+
   const checkSolution = () => {
-    const isSequenceCorrect = JSON.stringify(placedBlocks) === JSON.stringify(correctOrder);
+    // Verificar que todos los bloques necesarios estén colocados
+    if (placedBlocks.length !== correctOrder.length) {
+      setFeedback(`Necesitas colocar todos los bloques necesarios. Recuerda que necesitas: verificar material → reparar → cerrar if → else → buscar material → cerrar else`);
+      return;
+    }
+
+    // Verificar el orden de los bloques
+    console.log('Placed blocks:', placedBlocks);
+    console.log('Correct order:', correctOrder);
     
-    if (isSequenceCorrect) {
-      setFeedback('¡Correcto! Has reparado la ventana.');
+    const isSequenceCorrect = placedBlocks.every((blockId, index) => {
+      const isCorrect = blockId === correctOrder[index];
+      if (!isCorrect) {
+        console.log(`Error en posición ${index}: esperado ${correctOrder[index]}, recibido ${blockId}`);
+      }
+      return isCorrect;
+    });
+    
+    // Verificar que el material seleccionado en el bloque if sea el correcto
+    const ifBlockId = placedBlocks.find(id => id === 'block1');
+    console.log('Selected materials:', selectedMaterials);
+    console.log('If block ID:', ifBlockId);
+    
+    if (ifBlockId) {
+      console.log('Selected material for if block:', selectedMaterials[ifBlockId]);
+    }
+    
+    const isMaterialCorrect = ifBlockId && selectedMaterials[ifBlockId] === 'vidrio';
+    
+    if (!isMaterialCorrect) {
+      setFeedback('El material correcto para reparar la ventana es el vidrio. Recuerda que el robot debe verificar el material antes de intentar reparar.');
+      return;
+    }
+
+    if (!isSequenceCorrect) {
+      setFeedback('El orden de los bloques no es correcto. Recuerda que primero debes verificar el material, luego reparar, y si el material es incorrecto, buscar el material correcto.');
+      return;
+    }
+    
+    if (isSequenceCorrect && isMaterialCorrect) {
+      setFeedback('¡Excelente! Has reparado la ventana correctamente. El robot verificó el material, lo reparó con vidrio, y está listo para buscar otro material si es necesario.');
       setIsCorrect(true);
       setShowSuccess(true);
       
@@ -76,9 +167,31 @@ const WindowRepair: React.FC = () => {
       setTimeout(() => {
         completeChallenge('window-repair');
       }, 2000);
-    } else {
-      setFeedback('Hmm, parece que el código no funciona correctamente. Intenta de nuevo.');
     }
+  };
+
+  const renderBlockContent = (block: typeof initialCodeBlocks[0]) => {
+    if (block.type === 'if') {
+      return (
+        <div className="flex items-center gap-1">
+          <code>{block.content}</code>
+          <select
+            value={selectedMaterials[block.id] || shuffledMaterials[0].id}
+            onChange={(e) => handleMaterialChange(block.id, e.target.value)}
+            className="bg-transparent border-none text-white focus:outline-none"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {shuffledMaterials.map(material => (
+              <option key={material.id} value={material.id} className="bg-gray-800">
+                {material.name}
+              </option>
+            ))}
+          </select>
+          <code>") {'{'}</code>
+        </div>
+      );
+    }
+    return <code>{block.content}</code>;
   };
 
   return (
@@ -164,7 +277,7 @@ const WindowRepair: React.FC = () => {
                 onDragStart={(e) => handleDragStart(e, block.id)}
                 onDragEnd={handleDragEnd}
               >
-                <code>{block.content}</code>
+                {renderBlockContent(block)}
               </div>
             ))}
           </div>
@@ -197,7 +310,7 @@ const WindowRepair: React.FC = () => {
                         'bg-blue-800 text-white'
                       }`}
                     >
-                      <code>{block.content}</code>
+                      {renderBlockContent(block)}
                       <button 
                         className="ml-2 text-white hover:text-red-300"
                         onClick={() => removeBlock(blockId)}

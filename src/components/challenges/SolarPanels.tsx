@@ -4,13 +4,19 @@ import { Zap } from 'lucide-react';
 
 // Code blocks for loop challenge
 const initialCodeBlocks = [
-  { id: 'block1', type: 'for', content: 'for (let i = 0; i < 5; i++) {', isPlaced: false },
-  { id: 'block2', type: 'action', content: '  limpiarPanel(i);', isPlaced: false },
-  { id: 'block3', type: 'action', content: '}', isPlaced: false },
+  { id: 'block2', type: 'forComplete', content: 'for (let panel = 0; panel < N; panel++) {', isPlaced: false },
+  { id: 'block3', type: 'action', content: '  robot.limpiarPanel(panel);', isPlaced: false },
+  { id: 'block4', type: 'close', content: '}', isPlaced: false },
+  { id: 'block5', type: 'action', content: '  robot.verificarEnergia();', isPlaced: false },
+  { id: 'block6', type: 'action', content: '  robot.calibrarPanel(panel);', isPlaced: false },
+  { id: 'block7', type: 'action', content: '  robot.optimizarRendimiento();', isPlaced: false },
+  { id: 'block8', type: 'action', content: '  robot.reportarEstado();', isPlaced: false },
+  { id: 'block9', type: 'action', content: '  robot.reiniciarSistema();', isPlaced: false },
+  { id: 'block10', type: 'action', content: '  robot.verificarConexiones();', isPlaced: false },
 ];
 
 // Correct order of blocks
-const correctOrder = ['block1', 'block2', 'block3'];
+const correctOrder = ['block2', 'block3', 'block4'];
 
 const SolarPanels: React.FC = () => {
   const { completeChallenge } = useGame();
@@ -20,6 +26,8 @@ const SolarPanels: React.FC = () => {
   const [isCorrect, setIsCorrect] = useState(false);
   const [cleaningPanel, setCleaningPanel] = useState(-1);
   const [panelsClean, setPanelsClean] = useState([false, false, false, false, false]);
+  const [iterations, setIterations] = useState(() => Math.floor(Math.random() * 4) + 1);
+  const TOTAL_PANELS = 5;
   
   const handleDragStart = (e: React.DragEvent, id: string) => {
     e.dataTransfer.setData('blockId', id);
@@ -61,7 +69,7 @@ const SolarPanels: React.FC = () => {
     setPanelsClean([false, false, false, false, false]);
     setCleaningPanel(-1);
     
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < iterations; i++) {
       setTimeout(() => {
         setCleaningPanel(i);
         
@@ -74,9 +82,9 @@ const SolarPanels: React.FC = () => {
           });
           
           // If we're cleaning the last panel, mark as success
-          if (i === 4) {
+          if (i === iterations - 1) {
             setIsCorrect(true);
-            setFeedback('¡Excelente! Has activado todos los paneles solares.');
+            setFeedback(`¡Excelente! Has limpiado ${iterations} paneles solares.`);
             
             // Complete the challenge after showing the animation
             setTimeout(() => {
@@ -89,14 +97,54 @@ const SolarPanels: React.FC = () => {
   };
 
   const checkSolution = () => {
-    const isSequenceCorrect = JSON.stringify(placedBlocks) === JSON.stringify(correctOrder);
-    
-    if (isSequenceCorrect) {
-      setFeedback('Ejecutando el bucle para limpiar los paneles...');
-      executeAnimation();
-    } else {
-      setFeedback('El código no parece estar correcto. Revisa la estructura del bucle.');
+    // Verificar que todos los bloques necesarios estén colocados
+    if (placedBlocks.length !== correctOrder.length) {
+      setFeedback(`Necesitas colocar todos los bloques necesarios. Faltan ${correctOrder.length - placedBlocks.length} bloques.`);
+      return;
     }
+
+    // Verificar el orden de los bloques
+    const isSequenceCorrect = placedBlocks.every((blockId, index) => blockId === correctOrder[index]);
+    
+    if (!isSequenceCorrect) {
+      setFeedback('El orden de los bloques no es correcto. Asegúrate de que el bucle esté bien estructurado.');
+      return;
+    }
+
+    // Verificar que se vayan a limpiar todos los paneles
+    if (iterations < TOTAL_PANELS) {
+      setFeedback('¡El número de iteraciones no es suficiente para limpiar todos los paneles solares!');
+      return;
+    }
+
+    setFeedback('Ejecutando el bucle para limpiar los paneles...');
+    executeAnimation();
+  };
+
+  const renderBlockContent = (block: typeof initialCodeBlocks[0]) => {
+    if (block.type === 'forComplete') {
+      return (
+        <div className="flex items-center gap-1">
+          <span className="font-mono">for (let panel = 0; panel &lt; </span>
+          <input
+            type="number"
+            min="1"
+            max={TOTAL_PANELS}
+            value={iterations}
+            onChange={(e) => {
+              const value = parseInt(e.target.value);
+              if (value >= 1 && value <= TOTAL_PANELS) {
+                setIterations(value);
+              }
+            }}
+            className="w-16 bg-transparent border-b border-white text-white focus:outline-none text-center font-mono"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <span className="font-mono">; panel++) {'{'}</span>
+        </div>
+      );
+    }
+    return <span className="font-mono">{block.content}</span>;
   };
 
   return (
@@ -104,7 +152,7 @@ const SolarPanels: React.FC = () => {
       {/* Solar panels visualization */}
       <div className="flex justify-center mb-6">
         <div className="grid grid-cols-5 gap-4">
-          {Array.from({ length: 5 }).map((_, i) => (
+          {Array.from({ length: TOTAL_PANELS }).map((_, i) => (
             <div 
               key={i}
               className={`w-16 h-24 relative transition-all duration-300 ${
@@ -172,12 +220,14 @@ const SolarPanels: React.FC = () => {
                 key={block.id}
                 className={`p-2 rounded cursor-move ${
                   block.type === 'for' ? 'bg-purple-600 text-white' : 
+                  block.type === 'forEnd' ? 'bg-purple-600 text-white' :
+                  block.type === 'close' ? 'bg-red-600 text-white' :
                   'bg-blue-600 text-white'
                 }`}
                 draggable
                 onDragStart={(e) => handleDragStart(e, block.id)}
               >
-                <code>{block.content}</code>
+                {renderBlockContent(block)}
               </div>
             ))}
           </div>
@@ -203,10 +253,12 @@ const SolarPanels: React.FC = () => {
                       key={blockId}
                       className={`p-2 rounded flex justify-between items-center ${
                         block.type === 'for' ? 'bg-purple-800 text-white' : 
+                        block.type === 'forEnd' ? 'bg-purple-800 text-white' :
+                        block.type === 'close' ? 'bg-red-800 text-white' :
                         'bg-blue-800 text-white'
                       }`}
                     >
-                      <code>{block.content}</code>
+                      {renderBlockContent(block)}
                       <button 
                         className="ml-2 text-white hover:text-red-300"
                         onClick={() => removeBlock(blockId)}
@@ -224,13 +276,13 @@ const SolarPanels: React.FC = () => {
         {/* Explanation area */}
         <div className="p-3 bg-blue-100 rounded text-blue-800 text-sm">
           <p className="mb-1 font-bold">Recuerda:</p>
-          <p>Un bucle <code className="bg-blue-200 px-1 rounded">for</code> repite una acción varias veces. Para este desafío, necesitas limpiar 5 paneles solares uno por uno.</p>
+          <p>Un bucle <code className="bg-blue-200 px-1 rounded">for</code> repite una acción varias veces. Observa cuántos paneles solares hay y asegúrate de limpiarlos todos.</p>
         </div>
         
         {/* Feedback area */}
         <div className={`p-4 rounded-lg ${isCorrect ? 'bg-green-100' : feedback ? 'bg-yellow-100' : 'bg-gray-100'}`}>
           <p className={`font-medium ${isCorrect ? 'text-green-700' : feedback ? 'text-amber-700' : 'text-gray-500'}`}>
-            {feedback || "Construye un bucle para limpiar los 5 paneles solares."}
+            {feedback || "Construye un bucle para limpiar los paneles solares."}
           </p>
         </div>
         

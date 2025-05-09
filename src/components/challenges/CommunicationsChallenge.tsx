@@ -149,13 +149,16 @@ const CommunicationsChallenge: React.FC = () => {
       }
     }
     
+    // Mezclar aleatoriamente las soluciones
+    const shuffledSolutions = [...solutions].sort(() => Math.random() - 0.5);
+    
     // Generar 5 cables para el lado izquierdo
     for (let i = 0; i < 5; i++) {
       const { equation, code } = generateEquation();
       newCables.push({
         id: `left-${i}`,
         equation,
-        solution: solutions[i],
+        solution: shuffledSolutions[i],
         code,
         connected: false,
         connectionId: null,
@@ -163,13 +166,16 @@ const CommunicationsChallenge: React.FC = () => {
       });
     }
     
-    // Generar 5 cables para el lado derecho con las mismas soluciones
+    // Mezclar aleatoriamente las soluciones nuevamente para el lado derecho
+    const rightSolutions = [...solutions].sort(() => Math.random() - 0.5);
+    
+    // Generar 5 cables para el lado derecho con las mismas soluciones pero en orden aleatorio
     for (let i = 0; i < 5; i++) {
       const { equation, code } = generateEquation();
       newCables.push({
         id: `right-${i}`,
         equation,
-        solution: solutions[i],
+        solution: rightSolutions[i],
         code,
         connected: false,
         connectionId: null,
@@ -177,7 +183,11 @@ const CommunicationsChallenge: React.FC = () => {
       });
     }
     
-    setCables(newCables);
+    // Mezclar aleatoriamente los cables en ambos lados
+    const leftCables = newCables.filter(c => c.side === 'left').sort(() => Math.random() - 0.5);
+    const rightCables = newCables.filter(c => c.side === 'right').sort(() => Math.random() - 0.5);
+    
+    setCables([...leftCables, ...rightCables]);
   }, []);
 
   const handleCableSelect = (cableId: string) => {

@@ -14,15 +14,33 @@ const initialParticles = [
   { id: 8, type: 'fuel', size: 32, color: '#FFD166' },
 ];
 
+// Define particle types
+const particleTypes = [
+  { value: 'fuel', label: 'Combustible', color: '#FFD166' },
+  { value: 'contaminant', label: 'Contaminante', color: '#073B4C' }
+];
+
 // Define code blocks
 const initialCodeBlocks = [
+  // Bloques principales y distractores mezclados
   { id: 'block1', type: 'function', content: 'function filtrarParticula(particula) {', isPlaced: false },
-  { id: 'block2', type: 'if', content: '  if (particula.type === "fuel") {', isPlaced: false },
+  { id: 'block13', type: 'function', content: 'function purificarCombustible() {', isPlaced: false },
+  { id: 'block8', type: 'if', content: '  if (particula.size > ', isPlaced: false },
+  { id: 'block2', type: 'if', content: '  if (particula.type === ', isPlaced: false },
+  { id: 'block14', type: 'variable', content: '  let pureza = 0;', isPlaced: false },
   { id: 'block3', type: 'return', content: '    return true;', isPlaced: false },
+  { id: 'block15', type: 'loop', content: '  for (let i = 0; i < 10; i++) {', isPlaced: false },
   { id: 'block4', type: 'else', content: '  } else {', isPlaced: false },
+  { id: 'block16', type: 'condition', content: '  if (pureza > 80) {', isPlaced: false },
+  { id: 'block9', type: 'number', content: '25', isPlaced: false },
   { id: 'block5', type: 'return', content: '    return false;', isPlaced: false },
-  { id: 'block6', type: 'closure', content: '  }', isPlaced: false },
-  { id: 'block7', type: 'closure', content: '}', isPlaced: false },
+  { id: 'block17', type: 'action', content: '    purificar();', isPlaced: false },
+  { id: 'block10', type: 'operator', content: '  &&', isPlaced: false },
+  { id: 'block6', type: 'closureIf', content: '  } // cierre if', isPlaced: false },
+  { id: 'block11', type: 'operator', content: '  ||', isPlaced: false },
+  { id: 'block18', type: 'action', content: '    limpiarFiltro();', isPlaced: false },
+  { id: 'block12', type: 'return', content: '    return particula.size;', isPlaced: false },
+  { id: 'block7', type: 'closureFunc', content: '} // cierre función', isPlaced: false },
 ];
 
 // The correct order of blocks
@@ -37,6 +55,7 @@ const FuelPurifier: React.FC = () => {
   const [animationInProgress, setAnimationInProgress] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [isCorrect, setIsCorrect] = useState(false);
+  const [selectedParticleType, setSelectedParticleType] = useState('fuel');
   
   const handleDragStart = (e: React.DragEvent, id: string) => {
     e.dataTransfer.setData('blockId', id);
@@ -101,15 +120,73 @@ const FuelPurifier: React.FC = () => {
     });
   };
 
-  const checkSolution = () => {
-    const isSequenceCorrect = JSON.stringify(placedBlocks) === JSON.stringify(correctOrder);
-    
-    if (isSequenceCorrect) {
-      setFeedback('Ejecutando función de filtrado...');
-      runFilterAnimation();
-    } else {
-      setFeedback('La función de filtrado no es correcta. Revisa la lógica del código.');
+  const renderBlockContent = (block: typeof initialCodeBlocks[0]) => {
+    if (block.type === 'if') {
+      return (
+        <div className="flex items-center gap-1">
+          <span className="font-mono">{block.content}</span>
+          <select
+            value={selectedParticleType}
+            onChange={(e) => setSelectedParticleType(e.target.value)}
+            className="bg-transparent border-b border-white text-white focus:outline-none"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {particleTypes.map(type => (
+              <option key={type.value} value={type.value} className="bg-gray-800">
+                {type.label}
+              </option>
+            ))}
+          </select>
+          <span className="font-mono">") {`{`}</span>
+        </div>
+      );
     }
+    if (block.type === 'closureIf' || block.type === 'closureFunc') {
+      return (
+        <div className="flex items-center gap-2">
+          <span className="font-mono">{block.content}</span>
+          <span className="text-xs opacity-70">
+            {block.type === 'closureIf' ? '← cierre if' : '← cierre función'}
+          </span>
+          {block.type === 'closureIf' ? (
+            <Droplets className="w-4 h-4 opacity-70" />
+          ) : (
+            <div className="w-4 h-4 rounded-full border border-current opacity-70" />
+          )}
+        </div>
+      );
+    }
+    return <span className="font-mono">{block.content}</span>;
+  };
+
+  const checkSolution = () => {
+    const isSequenceCorrect = placedBlocks.every((blockId, index) => blockId === correctOrder[index]);
+    const isParticleTypeCorrect = selectedParticleType === 'fuel';
+    
+    // Verificar que los bloques sean los correctos y estén en el orden correcto
+    if (!isSequenceCorrect) {
+      // Verificar si están todos los bloques necesarios
+      const hasAllRequiredBlocks = correctOrder.every(blockId => placedBlocks.includes(blockId));
+      if (!hasAllRequiredBlocks) {
+        setFeedback('Faltan algunos bloques necesarios. Asegúrate de incluir todos los bloques de la función.');
+        return;
+      }
+
+      // Verificar el orden específico de los bloques
+      const wrongOrderIndex = placedBlocks.findIndex((blockId, index) => blockId !== correctOrder[index]);
+      if (wrongOrderIndex >= 0) {
+        setFeedback(`El orden de los bloques no es correcto. Revisa la estructura de la función.`);
+        return;
+      }
+    }
+
+    if (!isParticleTypeCorrect) {
+      setFeedback('¡Cuidado! Debes filtrar el combustible, no los contaminantes.');
+      return;
+    }
+    
+    setFeedback('Ejecutando función de filtrado...');
+    runFilterAnimation();
   };
 
   return (
@@ -200,12 +277,20 @@ const FuelPurifier: React.FC = () => {
                   block.type === 'if' ? 'bg-green-600 text-white' :
                   block.type === 'else' ? 'bg-yellow-600 text-white' :
                   block.type === 'return' ? 'bg-pink-600 text-white' :
+                  block.type === 'number' ? 'bg-orange-600 text-white' :
+                  block.type === 'operator' ? 'bg-indigo-600 text-white' :
+                  block.type === 'variable' ? 'bg-teal-600 text-white' :
+                  block.type === 'action' ? 'bg-cyan-600 text-white' :
+                  block.type === 'condition' ? 'bg-rose-600 text-white' :
+                  block.type === 'loop' ? 'bg-blue-600 text-white' :
+                  block.type === 'closureIf' ? 'bg-amber-800 text-white hover:bg-amber-700' :
+                  block.type === 'closureFunc' ? 'bg-purple-900 text-white hover:bg-purple-800' :
                   'bg-gray-600 text-white'
-                }`}
+                } transition-colors duration-200`}
                 draggable
                 onDragStart={(e) => handleDragStart(e, block.id)}
               >
-                <code>{block.content}</code>
+                {renderBlockContent(block)}
               </div>
             ))}
           </div>
@@ -234,10 +319,12 @@ const FuelPurifier: React.FC = () => {
                         block.type === 'if' ? 'bg-green-800 text-white' :
                         block.type === 'else' ? 'bg-yellow-800 text-white' :
                         block.type === 'return' ? 'bg-pink-800 text-white' :
+                        block.type === 'closureIf' ? 'bg-yellow-900 text-white' :
+                        block.type === 'closureFunc' ? 'bg-violet-900 text-white' :
                         'bg-gray-700 text-white'
                       }`}
                     >
-                      <code>{block.content}</code>
+                      {renderBlockContent(block)}
                       <button 
                         className="ml-2 text-white hover:text-red-300"
                         onClick={() => removeBlock(blockId)}
@@ -256,7 +343,7 @@ const FuelPurifier: React.FC = () => {
         {/* Explanation area */}
         <div className="p-3 bg-blue-100 rounded text-blue-800 text-sm">
           <p className="font-bold">Objetivo:</p>
-          <p>Crea una función que filtre las partículas y deje pasar solo el combustible, devolviendo <code className="bg-blue-200 px-1 rounded">true</code> para combustible y <code className="bg-blue-200 px-1 rounded">false</code> para contaminantes.</p>
+          <p>Crea una función que filtre las partículas y deje pasar solo el combustible limpio. Selecciona el tipo de partícula correcto y ordena los bloques adecuadamente.</p>
         </div>
         
         {/* Feedback area */}
