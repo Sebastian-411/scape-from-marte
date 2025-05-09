@@ -3,7 +3,7 @@ import { GameState, Challenge, Direction } from '../types';
 import { INITIAL_CHALLENGES } from '../data/challenges';
 
 const GAME_TIME = 20 * 60; // 20 minutes in seconds
-const DEV_MODE = true; // Cambia a false para desactivar el modo desarrollador
+const DEV_MODE = false; // Cambia a false para desactivar el modo desarrollador
 
 type NotificationType = 'success' | 'info';
 
