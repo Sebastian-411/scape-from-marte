@@ -1,0 +1,254 @@
+import React, { useState } from 'react';
+import { useGame } from '../../contexts/GameContext';
+import { Zap } from 'lucide-react';
+
+// Code blocks for loop challenge
+const initialCodeBlocks = [
+  { id: 'block1', type: 'for', content: 'for (let i = 0; i < 5; i++) {', isPlaced: false },
+  { id: 'block2', type: 'action', content: '  limpiarPanel(i);', isPlaced: false },
+  { id: 'block3', type: 'action', content: '}', isPlaced: false },
+];
+
+// Correct order of blocks
+const correctOrder = ['block1', 'block2', 'block3'];
+
+const SolarPanels: React.FC = () => {
+  const { completeChallenge } = useGame();
+  const [codeBlocks, setCodeBlocks] = useState(initialCodeBlocks);
+  const [placedBlocks, setPlacedBlocks] = useState<string[]>([]);
+  const [feedback, setFeedback] = useState('');
+  const [isCorrect, setIsCorrect] = useState(false);
+  const [cleaningPanel, setCleaningPanel] = useState(-1);
+  const [panelsClean, setPanelsClean] = useState([false, false, false, false, false]);
+  
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    e.dataTransfer.setData('blockId', id);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const blockId = e.dataTransfer.getData('blockId');
+    
+    // Don't allow already placed blocks
+    const block = codeBlocks.find(b => b.id === blockId);
+    if (!block || block.isPlaced) return;
+    
+    // Update the block as placed
+    setCodeBlocks(codeBlocks.map(block => 
+      block.id === blockId ? { ...block, isPlaced: true } : block
+    ));
+    
+    // Add to placed blocks
+    setPlacedBlocks([...placedBlocks, blockId]);
+  };
+
+  const removeBlock = (id: string) => {
+    // Update the block as not placed
+    setCodeBlocks(codeBlocks.map(block => 
+      block.id === id ? { ...block, isPlaced: false } : block
+    ));
+    
+    // Remove from placed blocks
+    setPlacedBlocks(placedBlocks.filter(blockId => blockId !== id));
+  };
+
+  const executeAnimation = () => {
+    // Simulate the loop animation
+    setPanelsClean([false, false, false, false, false]);
+    setCleaningPanel(-1);
+    
+    for (let i = 0; i < 5; i++) {
+      setTimeout(() => {
+        setCleaningPanel(i);
+        
+        // Mark panel as clean after a short delay
+        setTimeout(() => {
+          setPanelsClean(prev => {
+            const newPanels = [...prev];
+            newPanels[i] = true;
+            return newPanels;
+          });
+          
+          // If we're cleaning the last panel, mark as success
+          if (i === 4) {
+            setIsCorrect(true);
+            setFeedback('¡Excelente! Has activado todos los paneles solares.');
+            
+            // Complete the challenge after showing the animation
+            setTimeout(() => {
+              completeChallenge('solar-panels');
+            }, 1000);
+          }
+        }, 500);
+      }, i * 1000);
+    }
+  };
+
+  const checkSolution = () => {
+    const isSequenceCorrect = JSON.stringify(placedBlocks) === JSON.stringify(correctOrder);
+    
+    if (isSequenceCorrect) {
+      setFeedback('Ejecutando el bucle para limpiar los paneles...');
+      executeAnimation();
+    } else {
+      setFeedback('El código no parece estar correcto. Revisa la estructura del bucle.');
+    }
+  };
+
+  return (
+    <div className="h-full flex flex-col">
+      {/* Solar panels visualization */}
+      <div className="flex justify-center mb-6">
+        <div className="grid grid-cols-5 gap-4">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div 
+              key={i}
+              className={`w-16 h-24 relative transition-all duration-300 ${
+                panelsClean[i] 
+                  ? 'bg-gradient-to-b from-blue-400 to-blue-600 shadow-lg' 
+                  : 'bg-gradient-to-b from-gray-400 to-gray-600'
+              } ${
+                cleaningPanel === i ? 'transform scale-110' : ''
+              }`}
+            >
+              {/* Panel structure */}
+              <div className="absolute inset-1 grid grid-cols-2 grid-rows-2 gap-1">
+                {Array.from({ length: 4 }).map((_, j) => (
+                  <div 
+                    key={j}
+                    className={`${panelsClean[i] ? 'bg-blue-300' : 'bg-gray-300'} border border-black`}
+                  ></div>
+                ))}
+              </div>
+              
+              {/* Dust overlay */}
+              {!panelsClean[i] && (
+                <div className="absolute inset-0 bg-brown-200 bg-opacity-50">
+                  {Array.from({ length: 10 }).map((_, j) => (
+                    <div 
+                      key={j}
+                      className="absolute w-2 h-2 bg-amber-800 rounded-full opacity-40"
+                      style={{
+                        top: `${Math.random() * 100}%`,
+                        left: `${Math.random() * 100}%`,
+                      }}
+                    ></div>
+                  ))}
+                </div>
+              )}
+              
+              {/* Cleaning animation */}
+              {cleaningPanel === i && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-full h-full bg-blue-300 bg-opacity-40 animate-pulse flex items-center justify-center">
+                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Powered indicator */}
+              {panelsClean[i] && (
+                <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
+                  <Zap className="w-5 h-5 text-yellow-400" />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      {/* Code building area */}
+      <div className="flex-1 flex flex-col gap-4">
+        {/* Available blocks */}
+        <div className="p-4 bg-gray-100 rounded-lg shadow">
+          <h3 className="font-bold mb-2 text-gray-700">Bloques Disponibles:</h3>
+          <div className="flex flex-wrap gap-2">
+            {codeBlocks.filter(block => !block.isPlaced).map(block => (
+              <div
+                key={block.id}
+                className={`p-2 rounded cursor-move ${
+                  block.type === 'for' ? 'bg-purple-600 text-white' : 
+                  'bg-blue-600 text-white'
+                }`}
+                draggable
+                onDragStart={(e) => handleDragStart(e, block.id)}
+              >
+                <code>{block.content}</code>
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        {/* Drop area */}
+        <div 
+          className="flex-1 p-4 bg-gray-800 rounded-lg shadow flex flex-col"
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+        >
+          <h3 className="font-bold mb-2 text-white">Código de Limpieza:</h3>
+          <div className="flex-1 font-mono text-sm">
+            {placedBlocks.length === 0 ? (
+              <div className="text-gray-500 italic">Arrastra los bloques aquí para construir el bucle...</div>
+            ) : (
+              <div className="space-y-1">
+                {placedBlocks.map(blockId => {
+                  const block = codeBlocks.find(b => b.id === blockId);
+                  if (!block) return null;
+                  return (
+                    <div 
+                      key={blockId}
+                      className={`p-2 rounded flex justify-between items-center ${
+                        block.type === 'for' ? 'bg-purple-800 text-white' : 
+                        'bg-blue-800 text-white'
+                      }`}
+                    >
+                      <code>{block.content}</code>
+                      <button 
+                        className="ml-2 text-white hover:text-red-300"
+                        onClick={() => removeBlock(blockId)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* Explanation area */}
+        <div className="p-3 bg-blue-100 rounded text-blue-800 text-sm">
+          <p className="mb-1 font-bold">Recuerda:</p>
+          <p>Un bucle <code className="bg-blue-200 px-1 rounded">for</code> repite una acción varias veces. Para este desafío, necesitas limpiar 5 paneles solares uno por uno.</p>
+        </div>
+        
+        {/* Feedback area */}
+        <div className={`p-4 rounded-lg ${isCorrect ? 'bg-green-100' : feedback ? 'bg-yellow-100' : 'bg-gray-100'}`}>
+          <p className={`font-medium ${isCorrect ? 'text-green-700' : feedback ? 'text-amber-700' : 'text-gray-500'}`}>
+            {feedback || "Construye un bucle para limpiar los 5 paneles solares."}
+          </p>
+        </div>
+        
+        {/* Action button */}
+        <button 
+          className={`p-3 rounded-lg ${
+            placedBlocks.length === correctOrder.length
+              ? 'bg-blue-600 hover:bg-blue-700 text-white'
+              : 'bg-gray-300 text-gray-600 cursor-not-allowed'
+          } font-bold transition-colors`}
+          disabled={placedBlocks.length !== correctOrder.length || isCorrect}
+          onClick={checkSolution}
+        >
+          Ejecutar Bucle
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default SolarPanels;
